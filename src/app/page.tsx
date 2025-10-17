@@ -33,13 +33,13 @@ export default function Home() {
   const [showControls, setShowControls] = useState(false);
   const [useRealTime, setUseRealTime] = useState(true);
 
-  // 주요 시간대 정의
+  // 주요 시간대 정의 (과목 시작 시간)
   const majorTimePoints = [
     { time: "0805", label: "입실", emoji: "🚪" },
-    { time: "0810", label: "국어", emoji: "📖" },
-    { time: "1015", label: "수학", emoji: "🔢" },
-    { time: "1255", label: "영어", emoji: "🗣️" },
-    { time: "1435", label: "한국사", emoji: "📜" },
+    { time: "0840", label: "국어", emoji: "📖" },
+    { time: "1030", label: "수학", emoji: "🔢" },
+    { time: "1310", label: "영어", emoji: "🗣️" },
+    { time: "1450", label: "한국사", emoji: "📜" },
     { time: "1530", label: "탐구①", emoji: "🔬" },
     { time: "1602", label: "탐구②", emoji: "🧪" },
   ];
