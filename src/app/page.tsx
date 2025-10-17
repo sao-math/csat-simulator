@@ -51,7 +51,8 @@ export default function Home() {
       time: item.time,
       description: item.description,
       label: item.short,
-      visible: startTimes.includes(item.time) || endTimes.includes(item.time)
+      visible: startTimes.includes(item.time) || endTimes.includes(item.time),
+      audio: item.audio
     }));
   };
 
@@ -61,7 +62,16 @@ export default function Home() {
     const saved = localStorage.getItem('timePoints');
     if (saved) {
       try {
-        setMajorTimePoints(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // audio 필드가 없는 경우 TIMELINE에서 찾아서 채우기
+        const updated = parsed.map((point: any) => {
+          if (point.audio === undefined) {
+            const timelineItem = TIMELINE.find(t => t.time === point.time);
+            return { ...point, audio: timelineItem?.audio || null };
+          }
+          return point;
+        });
+        setMajorTimePoints(updated);
       } catch (e) {
         console.error('Failed to load saved time points:', e);
       }
@@ -112,7 +122,7 @@ export default function Home() {
   };
 
   const addTimePoint = () => {
-    const newPoint = { time: "0900", description: "새 시간대", label: "새 시간", visible: true };
+    const newPoint = { time: "0900", description: "새 시간대", label: "새 시간", visible: true, audio: null };
     saveTimePoints([...majorTimePoints, newPoint]);
   };
 
@@ -121,7 +131,7 @@ export default function Home() {
     saveTimePoints(newPoints);
   };
 
-  const updateTimePoint = (index: number, field: 'time' | 'description' | 'label' | 'visible', value: string | boolean) => {
+  const updateTimePoint = (index: number, field: 'time' | 'description' | 'label' | 'visible' | 'audio', value: string | boolean | null) => {
     const newPoints = [...majorTimePoints];
     newPoints[index] = { ...newPoints[index], [field]: value };
     saveTimePoints(newPoints);
@@ -211,11 +221,11 @@ export default function Home() {
     setDoneTimes(newDoneTimes);
 
     // 해당 시간의 소리 재생
-    const audioSource = TIMELINE.find((one) => one.time === targetTime);
-    if (audioSource?.audio && soundEnabled && audio && audioContext) {
+    const timePoint = majorTimePoints.find((one) => one.time === targetTime);
+    if (timePoint?.audio && soundEnabled && audio && audioContext) {
       audio.pause();
       const basePath = process.env.NODE_ENV === 'production' ? '/csat-simulator' : '';
-      audio.src = basePath + audioSource.audio;
+      audio.src = basePath + timePoint.audio;
       audioContext.resume()
         .then(() => audio.play())
         .catch((err) => {
@@ -507,7 +517,7 @@ export default function Home() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>다크 모드</span>
-              <button
+        <button
                 onClick={toggleDarkMode}
                 className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
                   darkMode ? 'bg-blue-600' : 'bg-gray-300'
@@ -518,8 +528,8 @@ export default function Home() {
                     darkMode ? 'translate-x-7' : 'translate-x-1'
                   }`}
                 />
-              </button>
-            </div>
+        </button>
+      </div>
 
             <div className="flex items-center justify-between">
               <span className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>소리 재생</span>
@@ -564,12 +574,12 @@ export default function Home() {
                 </button>
                 
                 <div className="flex gap-2">
-                  <button
+            <button
                     onClick={downloadConfig}
                     className="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
                   >
                     다운로드
-                  </button>
+            </button>
                   <label className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer text-center">
                     업로드
                     <input
@@ -581,12 +591,12 @@ export default function Home() {
                   </label>
                 </div>
                 
-                <button
+            <button
                   onClick={resetToDefault}
                   className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   기본값으로 초기화
-                </button>
+            </button>
               </div>
             </div>
 
@@ -609,7 +619,7 @@ export default function Home() {
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>시간대 편집</h3>
-              <button
+          <button
                 onClick={() => setShowEditor(false)}
                 className={`${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
               >
@@ -702,6 +712,30 @@ export default function Home() {
                         }`}
                       />
                     </div>
+
+                    <div>
+                      <label className={`text-xs font-medium mb-1 block ${
+                        darkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        음원 선택
+                      </label>
+                      <select
+                        value={point.audio || ''}
+                        onChange={(e) => updateTimePoint(index, 'audio', e.target.value || null)}
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                          darkMode 
+                            ? 'bg-gray-600 border-gray-500 text-white' 
+                            : 'bg-white border-gray-300 text-gray-800'
+                        }`}
+                      >
+                        <option value="">없음</option>
+                        {TIMELINE.filter(t => t.audio).map((t) => (
+                          <option key={t.time} value={t.audio!}>
+                            {t.audio?.replace('/sounds/', '')} - {t.description}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <button
                     onClick={() => deleteTimePoint(index)}
@@ -728,6 +762,7 @@ export default function Home() {
               <p className="mb-1">• 시간은 4자리 숫자 (예: 0840)</p>
               <p className="mb-1">• 화면 중앙 표시: 큰 글씨로 나타나는 메인 텍스트</p>
               <p className="mb-1">• 슬라이더 레이블: 타임라인 하단의 짧은 표시</p>
+              <p className="mb-1">• 음원 선택: 해당 시간에 재생될 소리 선택</p>
               <p className="mb-1">• 체크 해제하면 스냅 포인트에서 제외됩니다</p>
               <p>• 변경사항은 자동 저장됩니다</p>
             </div>
@@ -759,8 +794,8 @@ export default function Home() {
                 <button
                   onClick={() => {
                     const newSeconds = getInitialSeconds();
-                    setSeconds(newSeconds);
-                    setDoneTimes(new Set());
+              setSeconds(newSeconds);
+              setDoneTimes(new Set());
                     let newTimename = majorTimePoints[0]?.description || "입실준비";
                     const newDoneTimes = new Set<string>();
                     majorTimePoints.forEach((one) => {
@@ -778,7 +813,7 @@ export default function Home() {
                   className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap"
                 >
                   실시간
-                </button>
+          </button>
 
                 <div className="flex-1 relative h-2">
                   <div className={`absolute inset-0 rounded-full ${
@@ -811,8 +846,8 @@ export default function Home() {
                     onChange={handleSliderChange}
                     className="absolute inset-0 w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:shadow-xl [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:shadow-xl [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
                   />
-                </div>
-              </div>
+        </div>
+      </div>
 
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 px-4 py-2 opacity-0 pointer-events-none text-sm font-medium whitespace-nowrap">
@@ -826,8 +861,8 @@ export default function Home() {
                     const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
                     const position = (pointSeconds / 30720) * 100;
                     
-                    return (
-                      <div
+          return (
+            <div
                         key={point.time}
                         className="absolute -translate-x-1/2 text-center cursor-pointer hover:scale-110 transition-transform"
                         style={{ left: `${position}%` }}
@@ -840,16 +875,16 @@ export default function Home() {
                           darkMode ? 'text-gray-400' : 'text-gray-500'
                         }`}>
                           {point.time.substring(0, 2)}:{point.time.substring(2, 4)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
               </div>
             </div>
           )}
-        </div>
-      </div>
+                    </div>
+                    </div>
 
       <div className="fixed bottom-4 left-4 flex gap-2 z-40">
         {!soundEnabled && (
@@ -860,9 +895,9 @@ export default function Home() {
         {!clockVisible && (
           <div className="bg-blue-500/80 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
             ⏰ 시계 숨김
-          </div>
+                </div>
         )}
-      </div>
+            </div>
     </main>
   );
 }
