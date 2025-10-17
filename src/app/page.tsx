@@ -4,9 +4,24 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 export default function Home() {
+  // 현재 시간 기준으로 초기 seconds 계산
+  const getInitialSeconds = () => {
+    const now = dayjs();
+    const startTime = dayjs().startOf('day').hour(8).minute(5).second(0);
+    const endTime = dayjs().startOf('day').hour(16).minute(32).second(0);
+    
+    // 현재 시간이 수능 시간 범위 내에 있으면 경과 시간 계산
+    if (now.isAfter(startTime) && now.isBefore(endTime)) {
+      return now.diff(startTime, 'second');
+    }
+    
+    // 수능 시간 전이거나 후면 0부터 시작
+    return 0;
+  };
+
   const [audio, setAudio] = useState<HTMLAudioElement>();
   const [audioContext, setAudioContext] = useState<AudioContext>();
-  const [seconds, setSeconds] = useState(0);
+  const [seconds, setSeconds] = useState(getInitialSeconds());
   const [doneTimes, setDoneTimes] = useState<Set<string>>(new Set());
   const [currentTimename, setCurrentTimename] = useState(
     TIMELINE[0].description
@@ -16,6 +31,27 @@ export default function Home() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [clockVisible, setClockVisible] = useState(true);
   const [showControls, setShowControls] = useState(false);
+
+  // 초기 현재 과목명 설정
+  useEffect(() => {
+    const initialSeconds = getInitialSeconds();
+    let initialTimename = TIMELINE[0].description;
+    const initialDoneTimes = new Set<string>();
+
+    TIMELINE.forEach((one) => {
+      const oneHours = Number(one.time.substring(0, 2));
+      const oneMinutes = Number(one.time.substring(2, 4));
+      const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
+
+      if (oneTotalSeconds <= initialSeconds) {
+        initialDoneTimes.add(one.time);
+        initialTimename = one.description;
+      }
+    });
+
+    setCurrentTimename(initialTimename);
+    setDoneTimes(initialDoneTimes);
+  }, []);
 
   // 자동 시작 및 사용자 인터랙션 처리
   useEffect(() => {
