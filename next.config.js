@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
-  basePath: '/csat-simulator',
+  basePath: process.env.NODE_ENV === 'production' ? '/csat-simulator' : '',
   images: {
     unoptimized: true,
   },
