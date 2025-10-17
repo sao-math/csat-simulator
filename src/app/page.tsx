@@ -209,6 +209,19 @@ export default function Home() {
     });
     setCurrentTimename(newTimename);
     setDoneTimes(newDoneTimes);
+
+    // 해당 시간의 소리 재생
+    const audioSource = TIMELINE.find((one) => one.time === targetTime);
+    if (audioSource?.audio && soundEnabled && audio && audioContext) {
+      audio.pause();
+      const basePath = process.env.NODE_ENV === 'production' ? '/csat-simulator' : '';
+      audio.src = basePath + audioSource.audio;
+      audioContext.resume()
+        .then(() => audio.play())
+        .catch((err) => {
+          console.warn('Audio playback failed:', err);
+        });
+    }
   };
 
   const findNearest5MinuteTime = (sliderValue: number) => {

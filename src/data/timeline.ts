@@ -122,7 +122,7 @@ const TIMELINE: {
     description: "3교시 영어",
     short: "영어",
     duration: 60,
-    audio: "/sounds/eng.mp3",
+    audio: null,
   },
   {
     time: "1410",
