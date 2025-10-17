@@ -31,7 +31,7 @@ export default function Home() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [clockVisible, setClockVisible] = useState(true);
   const [showControls, setShowControls] = useState(false);
-  const [useRealTime, setUseRealTime] = useState(true);
+  const [useRealTime, setUseRealTime] = useState(false);
 
   // 주요 시간대 정의 (과목 시작 시간)
   const majorTimePoints = [
@@ -128,32 +128,31 @@ export default function Home() {
     setDoneTimes(newDoneTimes);
   };
 
-  // 슬라이더 값에서 가장 가까운 주요 시간대 찾기
-  const findNearestTimePoint = (sliderValue: number) => {
+  // 슬라이더 값에서 5분 단위로 스냅
+  const findNearest5MinuteTime = (sliderValue: number) => {
     const targetSeconds = (sliderValue / 100) * 30720; // 전체 시험 시간(30720초)의 비율
     
-    let nearestTime = majorTimePoints[0].time;
-    let minDiff = Infinity;
+    // 5분 단위로 반올림 (300초 = 5분)
+    const roundedSeconds = Math.round(targetSeconds / 300) * 300;
     
-    majorTimePoints.forEach((point) => {
-      const pointHours = Number(point.time.substring(0, 2));
-      const pointMinutes = Number(point.time.substring(2, 4));
-      const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
-      const diff = Math.abs(targetSeconds - pointSeconds);
-      
-      if (diff < minDiff) {
-        minDiff = diff;
-        nearestTime = point.time;
-      }
-    });
+    // 범위 제한
+    const clampedSeconds = Math.max(0, Math.min(30720, roundedSeconds));
     
-    return nearestTime;
+    // seconds를 시간으로 변환 (08:05 기준)
+    const totalSeconds = clampedSeconds + 29100; // 29100 = 8시간 5분
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    
+    // HHmm 형식으로 변환
+    const timeString = `${String(hours).padStart(2, '0')}${String(minutes).padStart(2, '0')}`;
+    
+    return timeString;
   };
 
   // 슬라이더 값 변경 핸들러
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sliderValue = Number(e.target.value);
-    const nearestTime = findNearestTimePoint(sliderValue);
+    const nearestTime = findNearest5MinuteTime(sliderValue);
     jumpToTime(nearestTime);
   };
 
@@ -430,7 +429,7 @@ export default function Home() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-lg font-medium">소리 재생</span>
-              <button
+            <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
                   soundEnabled ? 'bg-blue-600' : 'bg-gray-300'
@@ -441,12 +440,12 @@ export default function Home() {
                     soundEnabled ? 'translate-x-7' : 'translate-x-1'
                   }`}
                 />
-              </button>
+            </button>
             </div>
             
             <div className="flex items-center justify-between">
               <span className="text-lg font-medium">시계 표시</span>
-              <button
+            <button
                 onClick={() => setClockVisible(!clockVisible)}
                 className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
                   clockVisible ? 'bg-blue-600' : 'bg-gray-300'
@@ -457,96 +456,13 @@ export default function Home() {
                     clockVisible ? 'translate-x-7' : 'translate-x-1'
                   }`}
                 />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-medium">실시간 모드</span>
-            <button
-                onClick={toggleRealTime}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                  useRealTime ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                    useRealTime ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
             </button>
             </div>
-
-            {/* 시뮬레이션 모드일 때만 시작 시간 선택 표시 */}
-            {!useRealTime && (
-              <div className="pt-4 border-t border-gray-200">
-                <div className="text-sm font-medium text-gray-700 mb-3">시작 시간 선택</div>
-                
-                {/* 타임라인 슬라이더 */}
-                <div className="relative px-2 py-6">
-                  {/* 시간대 마커들 */}
-                  <div className="relative h-2 bg-gray-200 rounded-full mb-4">
-                    {majorTimePoints.map((point) => {
-                      const pointHours = Number(point.time.substring(0, 2));
-                      const pointMinutes = Number(point.time.substring(2, 4));
-                      const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
-                      const position = (pointSeconds / 30720) * 100;
-                      
-                      return (
-                        <div
-                          key={point.time}
-                          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
-                          style={{ left: `${position}%` }}
-                        >
-                          <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-md" />
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* 슬라이더 */}
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    defaultValue="0"
-                    onChange={handleSliderChange}
-                    className="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:border-0"
-                  />
-
-                  {/* 시간대 레이블 */}
-                  <div className="relative mt-6 h-24">
-                    {majorTimePoints.map((point) => {
-                      const pointHours = Number(point.time.substring(0, 2));
-                      const pointMinutes = Number(point.time.substring(2, 4));
-                      const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
-                      const position = (pointSeconds / 30720) * 100;
-                      
-                      return (
-                        <div
-                          key={point.time}
-                          className="absolute -translate-x-1/2 text-center cursor-pointer hover:scale-110 transition-transform"
-                          style={{ left: `${position}%` }}
-                          onClick={() => jumpToTime(point.time)}
-                        >
-                          <div className="text-2xl mb-1">{point.emoji}</div>
-                          <div className="text-sm font-medium text-gray-700 whitespace-nowrap">{point.label}</div>
-                          <div className="text-xs text-gray-500">
-                            {point.time.substring(0, 2)}:{point.time.substring(2, 4)}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className="pt-4 border-t border-gray-200">
               <div className="text-sm text-gray-600 space-y-1">
                 <p><kbd className="px-2 py-1 bg-gray-100 rounded">S</kbd> 소리 토글</p>
                 <p><kbd className="px-2 py-1 bg-gray-100 rounded">C</kbd> 시계 토글</p>
-                <p><kbd className="px-2 py-1 bg-gray-100 rounded">R</kbd> 실시간 토글</p>
                 <p><kbd className="px-2 py-1 bg-gray-100 rounded">M</kbd> 메뉴 토글</p>
               </div>
             </div>
@@ -554,7 +470,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="text-center select-none">
+      <div className="text-center select-none w-full">
         {/* 시계 - 매우 크게 (토글 가능) */}
         {clockVisible && (
           <div className="text-[120px] lg:text-[180px] font-bold text-gray-800 leading-none mb-12 transition-all">
@@ -567,19 +483,122 @@ export default function Home() {
           clockVisible ? 'text-5xl lg:text-7xl mb-8' : 'text-7xl lg:text-9xl'
         }`}>
           {currentTimename}
-      </div>
+        </div>
 
-        {/* 진행 바 */}
+        {/* 진행 바와 슬라이더 영역 */}
         <div className={`w-[90vw] max-w-5xl mx-auto transition-all ${clockVisible ? 'mt-0' : 'mt-12'}`}>
-          <div className="bg-white/50 rounded-full h-4 overflow-hidden shadow-lg">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000"
-              style={{
-                width: `${(seconds / 30720) * 100}%`,
-              }}
-            />
+          {/* 진행 바 */}
+          <div className="mb-2">
+            <div className="bg-white/50 rounded-full h-4 overflow-hidden shadow-lg">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000"
+                style={{
+                  width: `${(seconds / 30720) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 시뮬레이션 모드 타임라인 컨트롤 */}
+          {!useRealTime && (
+            <div className="w-[90vw] max-w-5xl mx-auto">
+              {/* 버튼과 슬라이더 바 (상하 가운데 정렬) */}
+              <div className="relative py-4 flex items-center gap-3">
+                {/* 실시간 버튼 (왼쪽) */}
+                <button
+                  onClick={() => {
+                    const newSeconds = getInitialSeconds();
+                    setSeconds(newSeconds);
+                    setDoneTimes(new Set());
+                    let newTimename = TIMELINE[0].description;
+                    const newDoneTimes = new Set<string>();
+                    TIMELINE.forEach((one) => {
+                      const oneHours = Number(one.time.substring(0, 2));
+                      const oneMinutes = Number(one.time.substring(2, 4));
+                      const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
+                      if (oneTotalSeconds <= newSeconds) {
+                        newDoneTimes.add(one.time);
+                        newTimename = one.description;
+                      }
+                    });
+                    setCurrentTimename(newTimename);
+                    setDoneTimes(newDoneTimes);
+                  }}
+                  className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap"
+                >
+                  실시간
+                </button>
+
+                {/* 슬라이더 바 (진행 바와 같은 길이) */}
+                <div className="flex-1 relative h-2">
+                  {/* 배경 바 */}
+                  <div className="absolute inset-0 bg-gray-300 rounded-full">
+                    {/* 시간대 마커들 */}
+                    {majorTimePoints.map((point) => {
+                      const pointHours = Number(point.time.substring(0, 2));
+                      const pointMinutes = Number(point.time.substring(2, 4));
+                      const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
+                      const position = (pointSeconds / 30720) * 100;
+                      
+                      return (
+                        <div
+                          key={point.time}
+                          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
+                          style={{ left: `${position}%` }}
+                        >
+                          <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 슬라이더 (바 위에 겹침) */}
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={(seconds / 30720) * 100}
+                    onChange={handleSliderChange}
+                    className="absolute inset-0 w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:shadow-xl [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:shadow-xl [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
+                  />
+                </div>
+              </div>
+
+              {/* 시간대 레이블 (슬라이더 아래) */}
+              <div className="flex items-start gap-3">
+                {/* 버튼 자리 (빈 공간) */}
+                <div className="flex-shrink-0 px-4 py-2 opacity-0 pointer-events-none text-sm font-medium whitespace-nowrap">
+                  실시간
+                </div>
+                
+                {/* 레이블 영역 (슬라이더와 같은 너비) */}
+                <div className="flex-1 relative h-12">
+                  {majorTimePoints.map((point) => {
+                    const pointHours = Number(point.time.substring(0, 2));
+                    const pointMinutes = Number(point.time.substring(2, 4));
+                    const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
+                    const position = (pointSeconds / 30720) * 100;
+                    
+                    return (
+                      <div
+                        key={point.time}
+                        className="absolute -translate-x-1/2 text-center cursor-pointer hover:scale-110 transition-transform"
+                        style={{ left: `${position}%` }}
+                        onClick={() => jumpToTime(point.time)}
+                      >
+                        <div className="text-sm font-bold text-gray-800 whitespace-nowrap">{point.label}</div>
+                        <div className="text-xs text-gray-500">
+                          {point.time.substring(0, 2)}:{point.time.substring(2, 4)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
+          )}
+        </div>
       </div>
 
       {/* 상태 인디케이터 (화면 왼쪽 하단) */}
@@ -592,16 +611,6 @@ export default function Home() {
         {!clockVisible && (
           <div className="bg-blue-500/80 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
             ⏰ 시계 숨김
-                    </div>
-        )}
-        {!useRealTime && (
-          <div className="bg-purple-500/80 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
-            🎮 시뮬레이션 모드
-                    </div>
-        )}
-        {useRealTime && (
-          <div className="bg-green-500/80 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
-            🕐 실시간 모드
                 </div>
         )}
             </div>
