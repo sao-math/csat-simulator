@@ -1,32 +1,25 @@
 "use client";
 import TIMELINE from "@/data/timeline";
-import CLOCKTYPE from "@/data/clocktype";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import classNames from "classnames";
-import {
-  TbPlayerPlay,
-  TbPlayerPause,
-  TbArrowsMoveHorizontal,
-  TbClock,
-  TbId,
-} from "react-icons/tb";
-import { Dialog, Transition } from "@headlessui/react";
-import Clock from "react-clock";
-import { info } from "console";
 
 export default function Home() {
   const [audio, setAudio] = useState<HTMLAudioElement>();
   const [audioContext, setAudioContext] = useState<AudioContext>();
-  const [useEffector, setUseEffector] = useState(true);
   const [seconds, setSeconds] = useState(0);
   const [doneTimes, setDoneTimes] = useState<Set<string>>(new Set());
   const [currentTimename, setCurrentTimename] = useState(
     TIMELINE[0].description
   );
   const [active, setActive] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
-  const [clockType, setClockType] = useState(CLOCKTYPE.DIGITAL)
+
+  // 자동 시작
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActive(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let audio = new Audio();
@@ -203,278 +196,30 @@ export default function Home() {
     .add(seconds, "seconds");
 
   return (
-    <main className="container mx-auto px-4 py-4 lg:py-10 h-screen flex flex-col">
-      <div className="flex">
-        <div className="mr-auto">
-          <h1
-            className="text-xl lg:text-3xl mb-1.5"
-            style={{
-              wordBreak: "keep-all",
-            }}
-          >
-            대학수학능력시험 시뮬레이터
-          </h1>
-          <div className="text-gray-500 font-light text-xs lg:text-sm">
-            CSAT SIMULATOR 2025
+    <main className="w-full h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="text-center select-none">
+        {/* 시계 - 매우 크게 */}
+        <div className="text-[120px] lg:text-[180px] font-bold text-gray-800 leading-none mb-12">
+          {current.format("HH:mm:ss")}
+        </div>
+        
+        {/* 현재 과목/상태 - 화면 중앙에 크게 */}
+        <div className="text-5xl lg:text-7xl font-bold text-indigo-900 mb-8 px-8">
+          {currentTimename}
+        </div>
+
+        {/* 진행 바 */}
+        <div className="w-[90vw] max-w-5xl mx-auto">
+          <div className="bg-white/50 rounded-full h-4 overflow-hidden shadow-lg">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000"
+              style={{
+                width: `${(seconds / 30720) * 100}%`,
+              }}
+            />
           </div>
         </div>
-        <button
-          type="button"
-          className="flex-shrink-0 hover:bg-black/10 border border-gray-300 transition-all duration-300 my-auto px-3 py-2 rounded-lg"
-          onClick={() => setInfoOpen(true)}
-        >
-          제작자 및 정보
-        </button>
       </div>
-      <hr className="border-gray-300 border-[0.5px] my-4" />
-      <div className="text-center my-auto select-none">
-          {clockType === CLOCKTYPE.DIGITAL ?
-            <div className="text-6xl lg:text-8xl pb-5">
-              {current.format("HH:mm:ss")}
-            </div>
-            :
-            <div className="my-auto mx-auto w-[150px] min-[375px]:w-[250px] md:w-[400px] pb-5">
-              <Clock
-                className={"m-auto"}
-                value={current.toISOString()}
-                locale={"ko-KR"}
-                renderNumbers={true}
-                hourHandWidth={6}
-                hourMarksWidth={6}
-                minuteHandWidth={4}
-                minuteMarksWidth={3}
-                secondHandWidth={2}
-                />
-            </div>
-          }
-        <div className="text-2xl font-medium">{currentTimename}</div>
-
-        <div className="my-5 pt-5 flex gap-3 justify-center w-full">
-          {active ? (
-            <button
-              type="button"
-              className="flex gap-2 hover:bg-black/10 border border-gray-300 transition-all duration-300 my-auto px-3 py-2 rounded-lg"
-              onClick={() => {
-                setActive(false);
-                audio!.pause();
-              }}
-            >
-              <TbPlayerPause className="my-auto" size={18} /> 중지
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="flex gap-2 hover:bg-black/10 border border-gray-300 transition-all duration-300 my-auto px-3 py-2 rounded-lg"
-              onClick={() => {
-                setActive(true);
-                audioContext?.resume();
-                if (!audio!.ended && audio!.src) {
-                  audio!.play();
-                }
-              }}
-            >
-              <TbPlayerPlay className="my-auto" size={18} /> 시작
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="flex gap-2 hover:bg-black/10 border border-gray-300 transition-all duration-300 my-auto px-3 py-2 rounded-lg"
-            onClick={() => {
-              let hourPrompt = prompt("이동할 시");
-              if (hourPrompt === null) return;
-
-              let hour = Number(hourPrompt);
-
-              let minutePrompt = Number(prompt("이동할 분"));
-              if (minutePrompt === null) return;
-
-              let minute = Number(minutePrompt);
-
-              let newSeconds = hour * 60 * 60 + minute * 60 - 29100;
-
-              if (isNaN(hour) || isNaN(minute)) {
-                return alert("숫자만 입력하십시오.");
-              }
-
-              if (newSeconds < 0) {
-                return alert("08시 05분 이후의 시간을 입력하십시오.");
-              }
-
-              audio!.pause();
-              audio!.src = "";
-              setSeconds(newSeconds);
-              setDoneTimes(new Set());
-            }}
-          >
-            <TbArrowsMoveHorizontal className="my-auto" size={18} /> 이동
-          </button>
-
-          {clockType !== CLOCKTYPE.DIGITAL ? (
-            <button
-              type="button"
-              className="flex gap-3 hover:bg-black/10 border border-gray-300 transition-all duration-300 my-auto px-3 py-2 rounded-lg"
-              onClick={() => {
-                setClockType(CLOCKTYPE.DIGITAL);
-              }}
-            >
-              <TbId className="my-auto" size={17} /> 디지털
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="flex gap-3 hover:bg-black/10 border border-gray-300 transition-all duration-300 my-auto px-3 py-2 rounded-lg"
-              onClick={() => {
-                setClockType(CLOCKTYPE.ANALOG);
-              }}
-            >
-              <TbClock className="my-auto" size={17} /> 아날로그
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div
-        className="bg-emerald-400 mt-0 h-1.5 rounded-sm"
-        style={{
-          width: `${(seconds / 30720) * 99.7}%`,
-        }}
-      />
-      <div className="mt-0 w-[95%] flex gap-[1px] lg:gap-[4px]">
-        {TIMELINE.map((one, i) => {
-          return (
-            <div
-              key={i}
-              className="relative"
-              style={{
-                width: `${(one.duration / 512) * 100}%`,
-              }}
-            >
-              <div className=" bottom-[3rem] w-20 text-[10px] font-medium lg:text-base">
-                {{
-                  "0810": "국어",
-                  "1015": "수학",
-                  "1255": "영어",
-                  "1435": "한국사",
-                  "1525": "1선택",
-                  "1602": "2선택",
-                }[one.time] || "‎"}
-              </div>
-              <div className="bg-slate-300 h-1.5 mt-auto rounded-sm mb-1" />
-              <div
-                className={classNames(
-                  "text-[10px] text-gray-600 h-9 w-[5px] tracking-tight leading-tight",
-                  ["준비령", "입실준비", "예비령", "10분전", "5분전"].includes(
-                    one.short
-                  ) || one.time === "1600"
-                    ? "hidden lg:block"
-                    : ""
-                )}
-              >
-                {one.short}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <Transition show={infoOpen} as={Fragment}>
-        <Dialog onClose={() => setInfoOpen(false)} className="relative z-50">
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black/30" />
-          </Transition.Child>
-
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0 scale-95"
-            enterTo="opacity-100 scale-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100 scale-100"
-            leaveTo="opacity-0 scale-95"
-          >
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-              <Dialog.Panel className="w-full max-w-xl rounded-xl bg-white p-6">
-                <Dialog.Title className="text-2xl font-semibold">
-                  개발자 & 정보
-                </Dialog.Title>
-
-                <hr className="my-3 -mx-1" />
-
-                <Dialog.Description className="mb-3">
-                  <p className="font-semibold mb-4">
-                    개발자 - ArpaAP (Buyeon Hwang)
-                  </p>
-                  <p className="mb-4">
-                    소프트웨어 개발자의 진로를 희망하는 05년생 학생입니다.
-                  </p>
-                  <p className="mb-4">
-                    - 제 상세 프로필 및 포트폴리오는 GitHub에서 확인하실 수
-                    있습니다:{" "}
-                    <div className="pl-3">
-                      <a
-                        href="https://github.com/ArpaAP"
-                        target="_blank"
-                        className="underline"
-                      >
-                        https://github.com/ArpaAP
-                      </a>
-                    </div>
-                  </p>
-                  <p className="mb-4">
-                    - 본 웹앱의 소스 코드는 아래 링크에서 확인하실 수 있습니다.
-                    PR은 언제나 환영입니다!
-                    <div className="pl-3">
-                      <a
-                        href="https://github.com/ArpaAP/csat-simulator"
-                        target="_blank"
-                        className="underline"
-                      >
-                        https://github.com/ArpaAP/csat-simulator
-                      </a>
-                    </div>
-                  </p>
-                  <p>
-                    - 아날로그 시계 by&nbsp;
-											<a
-												href="https://github.com/VESOC"
-												target="_blank"
-												className="underline"
-											>
-												VESOC
-											</a>
-											&nbsp;using&nbsp;
-											<a
-												href="https://github.com/wojtekmaj/react-clock"
-												target="_blank"
-												className="underline"
-											>
-												react-clock 
-											</a>
-                  </p>
-                </Dialog.Description>
-
-                <div className="flex justify-end gap-2 mt-3">
-                  <button
-                    onClick={() => setInfoOpen(false)}
-                    className="flex gap-2 hover:bg-black/10 border border-gray-300 transition-all duration-300 my-auto px-4 py-2 rounded-lg"
-                  >
-                    닫기
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </div>
-          </Transition.Child>
-        </Dialog>
-      </Transition>
     </main>
   );
 }

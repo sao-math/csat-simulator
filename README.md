@@ -1,34 +1,104 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# CSAT Simulator - TV Display Version
 
-## Getting Started
+수능 시뮬레이터의 TV 디스플레이 버전입니다. 강의실 맨 앞 대형 화면에 표시하기 위해 만들어졌습니다.
 
-First, run the development server:
+## 🎯 주요 기능
+
+- **대형 시계**: 180px 크기의 디지털 시계
+- **과목명 대형 표시**: 현재 진행 중인 과목/상태를 화면 중앙에 크게 표시
+- **자동 재생**: 페이지 로드 시 자동으로 시작
+- **수능 시간표 자동 진행**: 08:05부터 16:32까지 실제 수능 시간표에 맞춰 진행
+- **안내 방송**: 각 타임라인마다 실제 수능 안내 방송 재생
+
+## 🚀 로컬 개발
 
 ```bash
-npm run dev
-# or
+# 의존성 설치
+yarn install
+
+# 개발 서버 실행
 yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+http://localhost:3000 으로 접속하세요.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📦 빌드
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```bash
+yarn build
+```
 
-## Learn More
+빌드 후 `out` 폴더에 정적 파일이 생성됩니다.
 
-To learn more about Next.js, take a look at the following resources:
+## 🌐 GitHub Pages 배포
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 1. GitHub Repository 설정
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+1. GitHub에서 저장소 생성
+2. Settings → Pages → Source를 "GitHub Actions"로 변경
 
-## Deploy on Vercel
+### 2. 코드 푸시
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+git add .
+git commit -m "Deploy to GitHub Pages"
+git push origin main
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+### 3. 자동 배포
+
+`main` 브랜치에 푸시하면 자동으로 GitHub Pages에 배포됩니다.
+배포된 사이트는 `https://[username].github.io/csat-simulator/`에서 확인할 수 있습니다.
+
+## ⚙️ 설정 변경
+
+### 저장소 이름이 다른 경우
+
+`next.config.js`의 `basePath`를 수정하세요:
+
+```javascript
+const nextConfig = {
+  output: 'export',
+  basePath: '/your-repo-name', // 여기를 수정
+  images: {
+    unoptimized: true,
+  },
+};
+```
+
+### 자동 재생 시간 조정
+
+`src/app/page.tsx`의 자동 시작 타이머를 조정할 수 있습니다:
+
+```javascript
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setActive(true);
+  }, 1000); // 1초 후 시작 (조정 가능)
+  return () => clearTimeout(timer);
+}, []);
+```
+
+## 📱 사용법
+
+1. TV 브라우저에서 배포된 URL 접속
+2. 자동으로 시뮬레이션 시작
+3. 전체화면 모드(F11) 권장
+
+## 🔧 기술 스택
+
+- **Next.js 13** - React 프레임워크
+- **TypeScript** - 타입 안정성
+- **Tailwind CSS** - 스타일링
+- **dayjs** - 시간 처리
+- **Web Audio API** - 오디오 이펙트
+
+## 📝 원작자
+
+Original CSAT Simulator by [ArpaAP](https://github.com/ArpaAP/csat-simulator)
+
+---
+
+## 서버 필요 여부
+
+**서버 필요 없습니다!** 이 프로젝트는 완전히 클라이언트 사이드로만 동작하며, 정적 파일로 배포됩니다.
