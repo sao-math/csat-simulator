@@ -95,6 +95,8 @@ export default function Home() {
   const [showStartPrompt, setShowStartPrompt] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [clockVisible, setClockVisible] = useState(true);
+  const [textVisible, setTextVisible] = useState(true);
+  const [sliderVisible, setSliderVisible] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [useRealTime, setUseRealTime] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
@@ -480,11 +482,22 @@ export default function Home() {
 
   useEffect(() => {
     if (active && !isRealClockMode) {
-      let timer = setInterval(() => {
-        setSeconds((prev) => {
-          return prev + 1;
-        });
-      }, 1000);
+      let timeoutId: NodeJS.Timeout;
+
+      const tick = () => {
+        setSeconds(prev => prev + 1);
+
+        // 다음 정각 초까지의 시간을 계산하여 drift 보정
+        const now = Date.now();
+        const delay = 1000 - (now % 1000);
+
+        timeoutId = setTimeout(tick, delay);
+      };
+
+      // 첫 실행: 다음 정각 초까지 대기
+      const now = Date.now();
+      const initialDelay = 1000 - (now % 1000);
+      timeoutId = setTimeout(tick, initialDelay);
 
       let interval = setInterval(() => {
         const { startHour, startMinute, startSeconds } = getTimeRangeInSeconds();
@@ -543,7 +556,7 @@ export default function Home() {
       }, 100);
 
       return () => {
-        clearInterval(timer);
+        if (timeoutId) clearTimeout(timeoutId);
         clearInterval(interval);
       };
     }
@@ -648,6 +661,38 @@ export default function Home() {
                 <span
                   className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
                     clockVisible ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>텍스트 표시</span>
+              <button
+                onClick={() => setTextVisible(!textVisible)}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                  textVisible ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    textVisible ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>슬라이더 표시</span>
+              <button
+                onClick={() => setSliderVisible(!sliderVisible)}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                  sliderVisible ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                    sliderVisible ? 'translate-x-7' : 'translate-x-1'
                   }`}
                 />
               </button>
@@ -868,17 +913,20 @@ export default function Home() {
             {current.format("HH:mm:ss")}
           </div>
         )}
-        
-        <div className={`font-bold px-8 transition-all ${
-          clockVisible ? 'text-5xl lg:text-7xl mb-8' : 'text-7xl lg:text-9xl'
-        } ${
-          darkMode ? 'text-blue-300' : 'text-indigo-900'
-        }`}>
-          {currentTimename}
-        </div>
 
-        <div className={`w-[90vw] max-w-5xl mx-auto transition-all ${clockVisible ? 'mt-0' : 'mt-12'}`}>
-          <div>
+        {textVisible && (
+          <div className={`font-bold px-8 transition-all ${
+            clockVisible ? 'text-5xl lg:text-7xl mb-8' : 'text-7xl lg:text-9xl'
+          } ${
+            darkMode ? 'text-blue-300' : 'text-indigo-900'
+          }`}>
+            {currentTimename}
+          </div>
+        )}
+
+        {sliderVisible && (
+          <div className={`w-[90vw] max-w-5xl mx-auto transition-all ${clockVisible ? 'mt-0' : 'mt-12'}`}>
+            <div>
             <div className="relative py-4 flex items-center gap-3">
               <button
                 onClick={toggleRealTime}
@@ -957,7 +1005,8 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
       <div className="fixed bottom-4 left-4 flex gap-2 z-40">
         {!soundEnabled && (
