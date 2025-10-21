@@ -1,13 +1,63 @@
 "use client";
 import TIMELINE from "@/data/timeline";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import dayjs from "dayjs";
 
 export default function Home() {
-  const getInitialSeconds = () => {
+  const getDefaultTimePoints = () => {
+    const startTimes = ["0840", "1030", "1310", "1450", "1530", "1602"];
+    const endTimes = ["1000", "1210", "1420", "1520", "1600", "1632"];
+
+    return TIMELINE.map(item => ({
+      time: item.time,
+      description: item.description,
+      label: item.short,
+      visible: startTimes.includes(item.time) || endTimes.includes(item.time),
+      audio: item.audio
+    }));
+  };
+
+  const [majorTimePoints, setMajorTimePoints] = useState(getDefaultTimePoints());
+
+  const getTimeRangeInSeconds = useCallback(() => {
+    if (majorTimePoints.length === 0) {
+      return { startSeconds: 29100, durationSeconds: 30720, startHour: 8, startMinute: 5 };
+    }
+
+    const sortedTimes = [...majorTimePoints].sort((a, b) => a.time.localeCompare(b.time));
+    const firstTime = sortedTimes[0].time;
+    const lastTime = sortedTimes[sortedTimes.length - 1].time;
+
+    const startHour = Number(firstTime.substring(0, 2));
+    const startMinute = Number(firstTime.substring(2, 4));
+    const endHour = Number(lastTime.substring(0, 2));
+    const endMinute = Number(lastTime.substring(2, 4));
+
+    const startSeconds = startHour * 3600 + startMinute * 60;
+    const endSeconds = endHour * 3600 + endMinute * 60;
+    const durationSeconds = endSeconds - startSeconds;
+
+    return { startSeconds, durationSeconds, startHour, startMinute };
+  }, [majorTimePoints]);
+
+  const getInitialSeconds = useCallback(() => {
     const now = dayjs();
-    const startTime = dayjs().startOf('day').hour(8).minute(5).second(0);
-    const endTime = dayjs().startOf('day').hour(16).minute(32).second(0);
+
+    if (majorTimePoints.length === 0) {
+      return -1;
+    }
+
+    const sortedTimes = [...majorTimePoints].sort((a, b) => a.time.localeCompare(b.time));
+    const firstTime = sortedTimes[0].time;
+    const lastTime = sortedTimes[sortedTimes.length - 1].time;
+
+    const startHour = Number(firstTime.substring(0, 2));
+    const startMinute = Number(firstTime.substring(2, 4));
+    const endHour = Number(lastTime.substring(0, 2));
+    const endMinute = Number(lastTime.substring(2, 4));
+
+    const startTime = dayjs().startOf('day').hour(startHour).minute(startMinute).second(0);
+    const endTime = dayjs().startOf('day').hour(endHour).minute(endMinute).second(0);
 
     if (now.isBefore(startTime)) {
       // 시작 전: -1을 특수값으로 사용 (실제 시계 모드)
@@ -19,7 +69,7 @@ export default function Home() {
       // 종료 후: 다시 시작 전 모드로
       return -1;
     }
-  };
+  }, [majorTimePoints]);
 
   const [audio, setAudio] = useState<HTMLAudioElement>();
   const [audioContext, setAudioContext] = useState<AudioContext>();
@@ -43,26 +93,13 @@ export default function Home() {
     }
   }, []);
 
-  const toggleDarkMode = () => {
-    const newValue = !darkMode;
-    setDarkMode(newValue);
-    localStorage.setItem('darkMode', String(newValue));
-  };
-
-  const getDefaultTimePoints = () => {
-    const startTimes = ["0840", "1030", "1310", "1450", "1530", "1602"];
-    const endTimes = ["1000", "1210", "1420", "1520", "1600", "1632"];
-    
-    return TIMELINE.map(item => ({
-      time: item.time,
-      description: item.description,
-      label: item.short,
-      visible: startTimes.includes(item.time) || endTimes.includes(item.time),
-      audio: item.audio
-    }));
-  };
-
-  const [majorTimePoints, setMajorTimePoints] = useState(getDefaultTimePoints());
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode(prev => {
+      const newValue = !prev;
+      localStorage.setItem('darkMode', String(newValue));
+      return newValue;
+    });
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('timePoints');
@@ -154,23 +191,24 @@ export default function Home() {
       const initialSeconds = getInitialSeconds();
 
       if (initialSeconds === -1) {
-        // 시작 전: 실제 시계 모드
+        // 시작 전 또는 종료 후: 실제 시계 모드
         setIsRealClockMode(true);
         setSeconds(0);
         setCurrentTimename("시험 시작 전");
         setDoneTimes(new Set());
       } else {
-        // 진행 중 또는 종료 후
+        // 진행 중: 경과 시간부터 시작
         setIsRealClockMode(false);
         setSeconds(initialSeconds);
 
         let initialTimename = majorTimePoints[0]?.description || "입실준비";
         const initialDoneTimes = new Set<string>();
+        const { startSeconds } = getTimeRangeInSeconds();
 
         majorTimePoints.forEach((one) => {
           const oneHours = Number(one.time.substring(0, 2));
           const oneMinutes = Number(one.time.substring(2, 4));
-          const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
+          const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - startSeconds;
 
           if (oneTotalSeconds <= initialSeconds) {
             initialDoneTimes.add(one.time);
@@ -181,8 +219,14 @@ export default function Home() {
         setCurrentTimename(initialTimename);
         setDoneTimes(initialDoneTimes);
       }
+    } else {
+      // 실시간 모드 해제: 처음으로 초기화
+      setIsRealClockMode(false);
+      setSeconds(0);
+      setDoneTimes(new Set());
+      setCurrentTimename(majorTimePoints[0]?.description || "1교시 입실준비");
     }
-  }, [useRealTime, majorTimePoints]);
+  }, [useRealTime, majorTimePoints, getInitialSeconds, getTimeRangeInSeconds]);
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -216,19 +260,20 @@ export default function Home() {
   }, [active, audioContext]);
 
   const jumpToTime = (targetTime: string) => {
+    const { startSeconds } = getTimeRangeInSeconds();
     const targetHours = Number(targetTime.substring(0, 2));
     const targetMinutes = Number(targetTime.substring(2, 4));
-    const targetSeconds = targetHours * 60 * 60 + targetMinutes * 60 - 29100;
-    
+    const targetSeconds = targetHours * 60 * 60 + targetMinutes * 60 - startSeconds;
+
     setSeconds(targetSeconds);
     setDoneTimes(new Set());
-    
+
     let newTimename = majorTimePoints[0]?.description || "입실준비";
     const newDoneTimes = new Set<string>();
     majorTimePoints.forEach((one) => {
       const oneHours = Number(one.time.substring(0, 2));
       const oneMinutes = Number(one.time.substring(2, 4));
-      const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
+      const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - startSeconds;
       if (oneTotalSeconds <= targetSeconds) {
         newDoneTimes.add(one.time);
         newTimename = one.description || one.label;
@@ -252,10 +297,11 @@ export default function Home() {
   };
 
   const findNearest5MinuteTime = (sliderValue: number) => {
-    const targetSeconds = (sliderValue / 100) * 30720;
+    const { startSeconds, durationSeconds } = getTimeRangeInSeconds();
+    const targetSeconds = (sliderValue / 100) * durationSeconds;
     const roundedSeconds = Math.round(targetSeconds / 300) * 300;
-    const clampedSeconds = Math.max(0, Math.min(30720, roundedSeconds));
-    const totalSeconds = clampedSeconds + 29100;
+    const clampedSeconds = Math.max(0, Math.min(durationSeconds, roundedSeconds));
+    const totalSeconds = clampedSeconds + startSeconds;
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const timeString = `${String(hours).padStart(2, '0')}${String(minutes).padStart(2, '0')}`;
@@ -268,35 +314,9 @@ export default function Home() {
     jumpToTime(nearestTime);
   };
 
-  const toggleRealTime = () => {
-    setUseRealTime(prev => {
-      const newValue = !prev;
-      if (newValue) {
-        const newSeconds = getInitialSeconds();
-        setSeconds(newSeconds);
-        setDoneTimes(new Set());
-        
-        let newTimename = majorTimePoints[0]?.description || "입실준비";
-        const newDoneTimes = new Set<string>();
-        majorTimePoints.forEach((one) => {
-          const oneHours = Number(one.time.substring(0, 2));
-          const oneMinutes = Number(one.time.substring(2, 4));
-          const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
-          if (oneTotalSeconds <= newSeconds) {
-            newDoneTimes.add(one.time);
-            newTimename = one.description || one.label;
-          }
-        });
-        setCurrentTimename(newTimename);
-        setDoneTimes(newDoneTimes);
-      } else {
-        setSeconds(0);
-        setDoneTimes(new Set());
-        setCurrentTimename(majorTimePoints[0]?.description || "입실준비");
-      }
-      return newValue;
-    });
-  };
+  const toggleRealTime = useCallback(() => {
+    setUseRealTime(prev => !prev);
+  }, []);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -315,7 +335,7 @@ export default function Home() {
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [darkMode]);
+  }, [toggleDarkMode, toggleRealTime]);
 
   useEffect(() => {
     let audio = new Audio();
@@ -411,10 +431,15 @@ export default function Home() {
 
   // 실시간 모드에서 시작 시간 체크 및 자동 전환
   useEffect(() => {
-    if (useRealTime && isRealClockMode) {
+    if (useRealTime && isRealClockMode && majorTimePoints.length > 0) {
       const checkInterval = setInterval(() => {
         const now = dayjs();
-        const startTime = dayjs().startOf('day').hour(8).minute(5).second(0);
+
+        const sortedTimes = [...majorTimePoints].sort((a, b) => a.time.localeCompare(b.time));
+        const firstTime = sortedTimes[0].time;
+        const startHour = Number(firstTime.substring(0, 2));
+        const startMinute = Number(firstTime.substring(2, 4));
+        const startTime = dayjs().startOf('day').hour(startHour).minute(startMinute).second(0);
 
         if (now.isAfter(startTime) || now.isSame(startTime)) {
           // 시작 시간이 되면 실제 시뮬레이터 모드로 전환
@@ -438,10 +463,11 @@ export default function Home() {
       }, 1000);
 
       let interval = setInterval(() => {
+        const { startHour, startMinute, startSeconds } = getTimeRangeInSeconds();
         let current = dayjs()
           .startOf("day")
-          .set("hour", 8)
-          .set("minute", 5)
+          .set("hour", startHour)
+          .set("minute", startMinute)
           .set("second", 0)
           .add(seconds, "seconds");
 
@@ -455,7 +481,7 @@ export default function Home() {
           let oneHours = Number(one.time.substring(0, 2));
           let oneMinutes = Number(one.time.substring(2, 4));
 
-          let oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
+          let oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - startSeconds;
 
           if (oneTotalSeconds < seconds) {
             newDoneTimes.add(one.time);
@@ -497,14 +523,15 @@ export default function Home() {
         clearInterval(interval);
       };
     }
-  }, [active, audio, audioContext, doneTimes, seconds, soundEnabled, majorTimePoints, isRealClockMode]);
+  }, [active, audio, audioContext, doneTimes, seconds, soundEnabled, majorTimePoints, isRealClockMode, getTimeRangeInSeconds]);
 
+  const { startHour, startMinute } = getTimeRangeInSeconds();
   let current = isRealClockMode
     ? dayjs() // 실시간 시계 모드
     : dayjs()
         .startOf("day")
-        .set("hour", 8)
-        .set("minute", 5)
+        .set("hour", startHour)
+        .set("minute", startMinute)
         .set("second", 0)
         .add(seconds, "seconds");
 
@@ -831,24 +858,7 @@ export default function Home() {
             <div>
               <div className="relative py-4 flex items-center gap-3">
                 <button
-                  onClick={() => {
-                    const newSeconds = getInitialSeconds();
-              setSeconds(newSeconds);
-              setDoneTimes(new Set());
-                    let newTimename = majorTimePoints[0]?.description || "입실준비";
-                    const newDoneTimes = new Set<string>();
-                    majorTimePoints.forEach((one) => {
-                      const oneHours = Number(one.time.substring(0, 2));
-                      const oneMinutes = Number(one.time.substring(2, 4));
-                      const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
-                      if (oneTotalSeconds <= newSeconds) {
-                        newDoneTimes.add(one.time);
-                        newTimename = one.description || one.label;
-                      }
-                    });
-                    setCurrentTimename(newTimename);
-                    setDoneTimes(newDoneTimes);
-                  }}
+                  onClick={toggleRealTime}
                   className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap"
                 >
                   실시간
@@ -859,10 +869,11 @@ export default function Home() {
                     darkMode ? 'bg-gray-600' : 'bg-gray-300'
                   }`}>
                     {majorTimePoints.filter(p => p.visible !== false).map((point) => {
+                      const { startSeconds, durationSeconds } = getTimeRangeInSeconds();
                       const pointHours = Number(point.time.substring(0, 2));
                       const pointMinutes = Number(point.time.substring(2, 4));
-                      const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
-                      const position = (pointSeconds / 30720) * 100;
+                      const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - startSeconds;
+                      const position = (pointSeconds / durationSeconds) * 100;
                       
                       return (
                         <div
@@ -881,7 +892,7 @@ export default function Home() {
                     min="0"
                     max="100"
                     step="1"
-                    value={(seconds / 30720) * 100}
+                    value={(seconds / getTimeRangeInSeconds().durationSeconds) * 100}
                     onChange={handleSliderChange}
                     className="absolute inset-0 w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:shadow-xl [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:active:cursor-grabbing [&::-moz-range-thumb]:shadow-xl [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
                   />
@@ -895,10 +906,11 @@ export default function Home() {
                 
                 <div className="flex-1 relative h-12">
                   {majorTimePoints.filter(p => p.visible !== false).map((point) => {
+                    const { startSeconds, durationSeconds } = getTimeRangeInSeconds();
                     const pointHours = Number(point.time.substring(0, 2));
                     const pointMinutes = Number(point.time.substring(2, 4));
-                    const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - 29100;
-                    const position = (pointSeconds / 30720) * 100;
+                    const pointSeconds = pointHours * 60 * 60 + pointMinutes * 60 - startSeconds;
+                    const position = (pointSeconds / durationSeconds) * 100;
                     
           return (
             <div
