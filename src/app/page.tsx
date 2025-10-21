@@ -275,6 +275,12 @@ export default function Home() {
   }, [active, audioContext]);
 
   const jumpToTime = (targetTime: string) => {
+    // 실시간 모드 해제
+    if (useRealTime) {
+      setUseRealTime(false);
+    }
+    setIsRealClockMode(false);
+
     const { startSeconds } = getTimeRangeInSeconds();
     const targetHours = Number(targetTime.substring(0, 2));
     const targetMinutes = Number(targetTime.substring(2, 4));
@@ -872,15 +878,18 @@ export default function Home() {
         </div>
 
         <div className={`w-[90vw] max-w-5xl mx-auto transition-all ${clockVisible ? 'mt-0' : 'mt-12'}`}>
-          {!useRealTime && (
-            <div>
-              <div className="relative py-4 flex items-center gap-3">
-                <button
-                  onClick={toggleRealTime}
-                  className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap"
-                >
-                  실시간
-          </button>
+          <div>
+            <div className="relative py-4 flex items-center gap-3">
+              <button
+                onClick={toggleRealTime}
+                className={`flex-shrink-0 px-4 py-2 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap ${
+                  useRealTime
+                    ? 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600'
+                    : 'bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600'
+                }`}
+              >
+                {useRealTime ? '수동' : '실시간'}
+        </button>
 
                 <div className="flex-1 relative h-2">
                   <div className={`absolute inset-0 rounded-full ${
@@ -951,9 +960,8 @@ export default function Home() {
       </div>
               </div>
             </div>
-          )}
-                    </div>
-                    </div>
+          </div>
+        </div>
 
       <div className="fixed bottom-4 left-4 flex gap-2 z-40">
         {!soundEnabled && (
