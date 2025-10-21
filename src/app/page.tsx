@@ -336,7 +336,7 @@ export default function Home() {
   };
 
   const toggleRealTime = useCallback(() => {
-    setUseRealTime(prev => !prev);
+    setUseRealTime(true);
   }, []);
 
   useEffect(() => {
@@ -882,13 +882,9 @@ export default function Home() {
             <div className="relative py-4 flex items-center gap-3">
               <button
                 onClick={toggleRealTime}
-                className={`flex-shrink-0 px-4 py-2 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap ${
-                  useRealTime
-                    ? 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600'
-                    : 'bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600'
-                }`}
+                className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap"
               >
-                {useRealTime ? '수동' : '실시간'}
+                실시간
         </button>
 
                 <div className="flex-1 relative h-2">
