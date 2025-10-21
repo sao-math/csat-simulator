@@ -8,12 +8,17 @@ export default function Home() {
     const now = dayjs();
     const startTime = dayjs().startOf('day').hour(8).minute(5).second(0);
     const endTime = dayjs().startOf('day').hour(16).minute(32).second(0);
-    
-    if (now.isAfter(startTime) && now.isBefore(endTime)) {
+
+    if (now.isBefore(startTime)) {
+      // 시작 전: -1을 특수값으로 사용 (실제 시계 모드)
+      return -1;
+    } else if (now.isAfter(startTime) && now.isBefore(endTime)) {
+      // 진행 중: 경과 시간 반환
       return now.diff(startTime, 'second');
+    } else {
+      // 종료 후: 마지막 시간 (16:32 - 8:05 = 30720초)
+      return 30720;
     }
-    
-    return 0;
   };
 
   const [audio, setAudio] = useState<HTMLAudioElement>();
@@ -29,6 +34,7 @@ export default function Home() {
   const [useRealTime, setUseRealTime] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [isRealClockMode, setIsRealClockMode] = useState(false);
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode');
@@ -146,24 +152,35 @@ export default function Home() {
   useEffect(() => {
     if (useRealTime) {
       const initialSeconds = getInitialSeconds();
-      setSeconds(initialSeconds);
-      
-      let initialTimename = majorTimePoints[0]?.description || "입실준비";
-      const initialDoneTimes = new Set<string>();
 
-      majorTimePoints.forEach((one) => {
-        const oneHours = Number(one.time.substring(0, 2));
-        const oneMinutes = Number(one.time.substring(2, 4));
-        const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
+      if (initialSeconds === -1) {
+        // 시작 전: 실제 시계 모드
+        setIsRealClockMode(true);
+        setSeconds(0);
+        setCurrentTimename("시험 시작 전");
+        setDoneTimes(new Set());
+      } else {
+        // 진행 중 또는 종료 후
+        setIsRealClockMode(false);
+        setSeconds(initialSeconds);
 
-        if (oneTotalSeconds <= initialSeconds) {
-          initialDoneTimes.add(one.time);
-          initialTimename = one.description || one.label;
-        }
-      });
+        let initialTimename = majorTimePoints[0]?.description || "입실준비";
+        const initialDoneTimes = new Set<string>();
 
-      setCurrentTimename(initialTimename);
-      setDoneTimes(initialDoneTimes);
+        majorTimePoints.forEach((one) => {
+          const oneHours = Number(one.time.substring(0, 2));
+          const oneMinutes = Number(one.time.substring(2, 4));
+          const oneTotalSeconds = oneHours * 60 * 60 + oneMinutes * 60 - 29100;
+
+          if (oneTotalSeconds <= initialSeconds) {
+            initialDoneTimes.add(one.time);
+            initialTimename = one.description || one.label;
+          }
+        });
+
+        setCurrentTimename(initialTimename);
+        setDoneTimes(initialDoneTimes);
+      }
     }
   }, [useRealTime, majorTimePoints]);
 
@@ -392,8 +409,28 @@ export default function Home() {
     setAudioContext(audioContext);
   }, []);
 
+  // 실시간 모드에서 시작 시간 체크 및 자동 전환
   useEffect(() => {
-    if (active) {
+    if (useRealTime && isRealClockMode) {
+      const checkInterval = setInterval(() => {
+        const now = dayjs();
+        const startTime = dayjs().startOf('day').hour(8).minute(5).second(0);
+
+        if (now.isAfter(startTime) || now.isSame(startTime)) {
+          // 시작 시간이 되면 실제 시뮬레이터 모드로 전환
+          setIsRealClockMode(false);
+          setSeconds(0);
+          setCurrentTimename(majorTimePoints[0]?.description || "입실준비");
+          setDoneTimes(new Set());
+        }
+      }, 1000);
+
+      return () => clearInterval(checkInterval);
+    }
+  }, [useRealTime, isRealClockMode, majorTimePoints]);
+
+  useEffect(() => {
+    if (active && !isRealClockMode) {
       let timer = setInterval(() => {
         setSeconds((prev) => {
           return prev + 1;
@@ -460,14 +497,16 @@ export default function Home() {
         clearInterval(interval);
       };
     }
-  }, [active, audio, audioContext, doneTimes, seconds, soundEnabled, majorTimePoints]);
+  }, [active, audio, audioContext, doneTimes, seconds, soundEnabled, majorTimePoints, isRealClockMode]);
 
-  let current = dayjs()
-    .startOf("day")
-    .set("hour", 8)
-    .set("minute", 5)
-    .set("second", 0)
-    .add(seconds, "seconds");
+  let current = isRealClockMode
+    ? dayjs() // 실시간 시계 모드
+    : dayjs()
+        .startOf("day")
+        .set("hour", 8)
+        .set("minute", 5)
+        .set("second", 0)
+        .add(seconds, "seconds");
 
   return (
     <main className={`w-full h-screen flex flex-col items-center justify-center relative transition-colors duration-300 ${
