@@ -16,8 +16,8 @@ export default function Home() {
       // 진행 중: 경과 시간 반환
       return now.diff(startTime, 'second');
     } else {
-      // 종료 후: 마지막 시간 (16:32 - 8:05 = 30720초)
-      return 30720;
+      // 종료 후: 다시 시작 전 모드로
+      return -1;
     }
   };
 
