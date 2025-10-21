@@ -59,14 +59,29 @@ export default function Home() {
     const startTime = dayjs().startOf('day').hour(startHour).minute(startMinute).second(0);
     const endTime = dayjs().startOf('day').hour(endHour).minute(endMinute).second(0);
 
+    console.log('[getInitialSeconds] Debug:', {
+      now: now.format('YYYY-MM-DD HH:mm:ss'),
+      startTime: startTime.format('YYYY-MM-DD HH:mm:ss'),
+      endTime: endTime.format('YYYY-MM-DD HH:mm:ss'),
+      isBefore: now.isBefore(startTime),
+      isAfter: now.isAfter(startTime),
+      isBeforeEnd: now.isBefore(endTime),
+      firstTime,
+      lastTime
+    });
+
     if (now.isBefore(startTime)) {
       // 시작 전: -1을 특수값으로 사용 (실제 시계 모드)
+      console.log('[getInitialSeconds] Before start -> returning -1');
       return -1;
     } else if (now.isAfter(startTime) && now.isBefore(endTime)) {
       // 진행 중: 경과 시간 반환
-      return now.diff(startTime, 'second');
+      const diff = now.diff(startTime, 'second');
+      console.log('[getInitialSeconds] During exam -> returning', diff);
+      return diff;
     } else {
       // 종료 후: 다시 시작 전 모드로
+      console.log('[getInitialSeconds] After end -> returning -1');
       return -1;
     }
   }, [majorTimePoints]);
@@ -447,6 +462,9 @@ export default function Home() {
           setSeconds(0);
           setCurrentTimename(majorTimePoints[0]?.description || "입실준비");
           setDoneTimes(new Set());
+        } else {
+          // 시작 전: 화면 갱신을 위해 seconds를 업데이트 (실제 값은 사용 안 함)
+          setSeconds(prev => prev + 1);
         }
       }, 1000);
 
