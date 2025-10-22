@@ -562,6 +562,32 @@ export default function Home() {
     }
   }, [active, audio, audioContext, doneTimes, seconds, soundEnabled, majorTimePoints, isRealClockMode, getTimeRangeInSeconds]);
 
+  // 화면 활성화 시 시간 동기화 (절전 모드, 탭 전환 대응)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // 탭이 다시 활성화되었을 때
+        if (isRealClockMode || useRealTime) {
+          // 실시간 모드: 현재 시간으로 재동기화
+          const initialSeconds = getInitialSeconds();
+          if (initialSeconds === -1) {
+            setIsRealClockMode(true);
+            setSeconds(0);
+            setCurrentTimename("시험 시작 전");
+          } else {
+            setIsRealClockMode(false);
+            setSeconds(initialSeconds);
+          }
+        }
+        // 강제 리렌더링
+        setSeconds(prev => prev);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRealClockMode, useRealTime, getInitialSeconds]);
+
   const { startHour, startMinute } = getTimeRangeInSeconds();
   let current = isRealClockMode
     ? dayjs() // 실시간 시계 모드
@@ -905,9 +931,9 @@ export default function Home() {
         </div>
       )}
 
-      <div className="text-center select-none w-full">
+      <div className="text-center select-none w-full px-4">
         {clockVisible && (
-          <div className={`text-[120px] lg:text-[180px] font-bold leading-none mb-12 transition-all ${
+          <div className={`text-6xl sm:text-7xl md:text-8xl lg:text-[120px] xl:text-[180px] font-bold leading-none mb-6 sm:mb-8 md:mb-12 transition-all ${
             darkMode ? 'text-gray-100' : 'text-gray-800'
           }`}>
             {current.format("HH:mm:ss")}
@@ -915,8 +941,8 @@ export default function Home() {
         )}
 
         {textVisible && (
-          <div className={`font-bold px-8 transition-all ${
-            clockVisible ? 'text-5xl lg:text-7xl mb-8' : 'text-7xl lg:text-9xl'
+          <div className={`font-bold px-4 sm:px-6 md:px-8 transition-all ${
+            clockVisible ? 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-7xl mb-4 sm:mb-6 md:mb-8' : 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-9xl'
           } ${
             darkMode ? 'text-blue-300' : 'text-indigo-900'
           }`}>
@@ -925,12 +951,12 @@ export default function Home() {
         )}
 
         {sliderVisible && (
-          <div className={`w-[90vw] max-w-5xl mx-auto transition-all ${clockVisible ? 'mt-0' : 'mt-12'}`}>
+          <div className={`w-[95vw] sm:w-[90vw] max-w-5xl mx-auto transition-all ${clockVisible ? 'mt-0' : 'mt-6 sm:mt-12'}`}>
             <div>
-            <div className="relative py-4 flex items-center gap-3">
+            <div className="relative py-2 sm:py-4 flex items-center gap-2 sm:gap-3">
               <button
                 onClick={toggleRealTime}
-                className="flex-shrink-0 px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap"
+                className="flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all whitespace-nowrap touch-manipulation"
               >
                 실시간
         </button>
