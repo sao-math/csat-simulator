@@ -4,6 +4,7 @@ const TIMELINE: {
   short: string;
   duration: number;
   audio: string | null;
+  visible: boolean;
 }[] = [
   {
     time: "0805",
@@ -11,6 +12,7 @@ const TIMELINE: {
     short: "입실준비",
     duration: 5,
     audio: "/sounds/0805-ready.mp3",
+    visible: false,
   },
   {
     time: "0810",
@@ -18,6 +20,7 @@ const TIMELINE: {
     short: "입실완료",
     duration: 15,
     audio: "/sounds/0810-complete.mp3",
+    visible: false,
   },
   {
     time: "0825",
@@ -25,6 +28,7 @@ const TIMELINE: {
     short: "예비령",
     duration: 10,
     audio: "/sounds/0825-kor-pre.mp3",
+    visible: false,
   },
   {
     time: "0835",
@@ -32,6 +36,7 @@ const TIMELINE: {
     short: "준비령",
     duration: 5,
     audio: "/sounds/0835-kor-ready.mp3",
+    visible: false,
   },
   {
     time: "0840",
@@ -39,6 +44,7 @@ const TIMELINE: {
     short: "국어",
     duration: 70,
     audio: "/sounds/0840-korean.mp3",
+    visible: true,
   },
   {
     time: "0950",
@@ -46,6 +52,7 @@ const TIMELINE: {
     short: "10분전",
     duration: 10,
     audio: "/sounds/0950-kor-10min.mp3",
+    visible: false,
   },
   {
     time: "1000",
@@ -53,6 +60,7 @@ const TIMELINE: {
     short: "종료령",
     duration: 15,
     audio: "/sounds/1000-end.mp3",
+    visible: true,
   },
   {
     time: "1015",
@@ -60,6 +68,7 @@ const TIMELINE: {
     short: "입실",
     duration: 5,
     audio: "/sounds/1015-enter.mp3",
+    visible: false,
   },
   {
     time: "1020",
@@ -67,6 +76,7 @@ const TIMELINE: {
     short: "예비령",
     duration: 5,
     audio: "/sounds/1020-math-pre.mp3",
+    visible: false,
   },
   {
     time: "1025",
@@ -74,6 +84,7 @@ const TIMELINE: {
     short: "준비령",
     duration: 5,
     audio: "/sounds/1025-math-ready.mp3",
+    visible: false,
   },
   {
     time: "1030",
@@ -81,6 +92,7 @@ const TIMELINE: {
     short: "수학",
     duration: 90,
     audio: "/sounds/1030-math.mp3",
+    visible: true,
   },
   {
     time: "1200",
@@ -88,6 +100,7 @@ const TIMELINE: {
     short: "10분전",
     duration: 10,
     audio: "/sounds/1200-math-10min.mp3",
+    visible: false,
   },
   {
     time: "1210",
@@ -95,6 +108,7 @@ const TIMELINE: {
     short: "종료령",
     duration: 45,
     audio: "/sounds/1210-end.mp3",
+    visible: true,
   },
   {
     time: "1255",
@@ -102,6 +116,7 @@ const TIMELINE: {
     short: "입실",
     duration: 5,
     audio: "/sounds/1255-enter.mp3",
+    visible: false,
   },
   {
     time: "1300",
@@ -109,6 +124,7 @@ const TIMELINE: {
     short: "예비령",
     duration: 5,
     audio: "/sounds/1300-eng-pre.mp3",
+    visible: false,
   },
   {
     time: "1305",
@@ -116,6 +132,7 @@ const TIMELINE: {
     short: "준비령",
     duration: 5,
     audio: "/sounds/1305-eng-ready.mp3",
+    visible: false,
   },
   {
     time: "1310",
@@ -123,6 +140,7 @@ const TIMELINE: {
     short: "영어",
     duration: 60,
     audio: null,
+    visible: true,
   },
   {
     time: "1410",
@@ -130,6 +148,7 @@ const TIMELINE: {
     short: "10분전",
     duration: 10,
     audio: "/sounds/1410-eng-10min.mp3",
+    visible: false,
   },
   {
     time: "1420",
@@ -137,6 +156,7 @@ const TIMELINE: {
     short: "종료령",
     duration: 15,
     audio: "/sounds/1420-end.mp3",
+    visible: true,
   },
   {
     time: "1435",
@@ -144,6 +164,7 @@ const TIMELINE: {
     short: "입실",
     duration: 5,
     audio: "/sounds/1435-hist-enter.mp3",
+    visible: false,
   },
   {
     time: "1440",
@@ -151,6 +172,7 @@ const TIMELINE: {
     short: "예비령",
     duration: 5,
     audio: "/sounds/1440-hist-pre.mp3",
+    visible: false,
   },
   {
     time: "1445",
@@ -158,13 +180,15 @@ const TIMELINE: {
     short: "준비령",
     duration: 5,
     audio: "/sounds/1445-hist-ready.mp3",
+    visible: false,
   },
   {
     time: "1450",
     description: "4교시 한국사",
     short: "한국사",
-    duration: 25,
+    duration: 30,
     audio: "/sounds/1450-history.mp3",
+    visible: true,
   },
   {
     time: "1515",
@@ -172,6 +196,7 @@ const TIMELINE: {
     short: "5분전",
     duration: 5,
     audio: "/sounds/1515-hist-5min.mp3",
+    visible: false,
   },
   {
     time: "1520",
@@ -179,55 +204,71 @@ const TIMELINE: {
     short: "종료령",
     duration: 5,
     audio: "/sounds/1520-hist-end.mp3",
+    visible: true,
   },
   {
     time: "1525",
-    description: "4교시 탐구 준비령",
-    short: "준비령",
+    description: "4교시 탐구 예비령",
+    short: "예비령",
     duration: 5,
     audio: "/sounds/1525-sci-ready.mp3",
+    visible: false,
   },
   {
     time: "1530",
-    description: "4교시 탐구 제1선택",
-    short: "탐구①",
-    duration: 25,
-    audio: "/sounds/1530-science1.mp3",
+    description: "4교시 탐구 준비령",
+    short: "준비령",
+    duration: 5,
+    audio: "/sounds/1530-science-ready.mp3",
+    visible: false,
   },
   {
-    time: "1555",
-    description: "4교시 탐구 제1선택 종료 5분전",
-    short: "5분전",
-    duration: 5,
-    audio: "/sounds/1555-sci1-5min.mp3",
+    time: "1535",
+    description: "4교시 탐구 제1선택",
+    short: "탐구①",
+    duration: 30,
+    audio: "/sounds/1535-science1.mp3",
+    visible: true,
   },
   {
     time: "1600",
+    description: "4교시 탐구 제1선택 종료 5분전",
+    short: "5분전",
+    duration: 5,
+    audio: "/sounds/1600-sci1-5min.mp3",
+    visible: false,
+  },
+  {
+    time: "1605",
     description: "4교시 탐구 제1선택 종료령",
     short: "종료령",
     duration: 2,
-    audio: "/sounds/1600-sci1-end.mp3",
+    audio: "/sounds/1605-sci1-end.mp3",
+    visible: true,
   },
   {
-    time: "1602",
+    time: "1607",
     description: "4교시 탐구 제2선택",
     short: "탐구②",
-    duration: 25,
-    audio: "/sounds/1602-science2.mp3",
-  },
-  {
-    time: "1627",
-    description: "4교시 탐구 제2선택 종료 5분전",
-    short: "5분전",
-    duration: 5,
-    audio: "/sounds/1627-sci2-5min.mp3",
+    duration: 30,
+    audio: "/sounds/1607-science2.mp3",
+    visible: true,
   },
   {
     time: "1632",
+    description: "4교시 탐구 제2선택 종료 5분전",
+    short: "5분전",
+    duration: 5,
+    audio: "/sounds/1632-sci2-5min.mp3",
+    visible: false,
+  },
+  {
+    time: "1637",
     description: "4교시 탐구 제2선택 종료령",
     short: "종료령",
     duration: 0,
-    audio: "/sounds/1632-sci2-end.mp3",
+    audio: "/sounds/1637-sci2-end.mp3",
+    visible: true,
   },
 ];
 

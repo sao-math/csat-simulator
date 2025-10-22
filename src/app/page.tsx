@@ -5,14 +5,11 @@ import dayjs from "dayjs";
 
 export default function Home() {
   const getDefaultTimePoints = () => {
-    const startTimes = ["0840", "1030", "1310", "1450", "1530", "1602"];
-    const endTimes = ["1000", "1210", "1420", "1520", "1600", "1632"];
-
     return TIMELINE.map(item => ({
       time: item.time,
       description: item.description,
       label: item.short,
-      visible: startTimes.includes(item.time) || endTimes.includes(item.time),
+      visible: item.visible,
       audio: item.audio
     }));
   };
