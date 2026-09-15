@@ -16,6 +16,9 @@ export default function Home() {
 
   const [majorTimePoints, setMajorTimePoints] = useState(getDefaultTimePoints());
 
+  const sortByTime = (points: typeof majorTimePoints) =>
+    [...points].sort((a, b) => a.time.localeCompare(b.time));
+
   const getTimeRangeInSeconds = useCallback(() => {
     if (majorTimePoints.length === 0) {
       return { startSeconds: 29100, durationSeconds: 30720, startHour: 8, startMinute: 5 };
@@ -128,7 +131,7 @@ export default function Home() {
           }
           return point;
         });
-        setMajorTimePoints(updated);
+        setMajorTimePoints(sortByTime(updated));
       } catch (e) {
         console.error('Failed to load saved time points:', e);
       }
@@ -165,7 +168,7 @@ export default function Home() {
         const content = e.target?.result as string;
         const config = JSON.parse(content);
         if (config.timePoints && Array.isArray(config.timePoints)) {
-          saveTimePoints(config.timePoints);
+          saveTimePoints(sortByTime(config.timePoints));
           alert('설정을 불러왔습니다!');
         } else {
           alert('올바르지 않은 파일 형식입니다.');
@@ -805,6 +808,8 @@ export default function Home() {
                             const value = e.target.value.replace(/\D/g, '').slice(0, 4);
                             updateTimePoint(index, 'time', value);
                           }}
+                          // Re-sorting on every keystroke would move the row while the user is still typing.
+                          onBlur={() => saveTimePoints(sortByTime(majorTimePoints))}
                           placeholder="0840"
                           className={`w-20 px-3 py-2 border rounded-lg text-sm font-mono ${
                             darkMode 
